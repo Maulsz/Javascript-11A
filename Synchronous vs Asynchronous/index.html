@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Sync & Async JavaScript</title>
+  </head>
+
+  <body>
+    <h1>Synchronous & Asynchronous JavaScript</h1>
+
+    <p>
+      Buka <b>Console</b> browser dengan menekan <b>F12</b>
+      untuk melihat hasil praktik.
+    </p>
+
+    <hr />
+
+    <h2>1. Synchronous</h2>
+
+    <button id="syncBtn">Jalankan Synchronous</button>
+
+    <hr />
+
+    <h2>2. Asynchronous</h2>
+
+    <button id="asyncBtn">Jalankan Asynchronous</button>
+
+    <hr />
+
+    <h2>3. Callback</h2>
+
+    <button id="callbackBtn">Jalankan Callback</button>
+
+    <hr />
+
+    <h2>4. Promise</h2>
+
+    <button id="promiseBtn">Jalankan Promise</button>
+
+    <hr />
+
+    <h2>5. Async / Await</h2>
+
+    <button id="asyncAwaitBtn">Jalankan Async / Await</button>
+
+    <script>
+      // ========================================
+      // 1. SYNCHRONOUS
+      // ========================================
+
+      const syncBtn = document.querySelector("#syncBtn");
+
+      syncBtn.addEventListener("click", () => {
+        console.clear();
+
+        console.log("=== SYNCHRONOUS ===");
+
+        console.log("Pertama");
+        console.log("Kedua");
+        console.log("Ketiga");
+      });
+
+      // ========================================
+      // 2. ASYNCHRONOUS
+      // ========================================
+
+      const asyncBtn = document.querySelector("#asyncBtn");
+
+      asyncBtn.addEventListener("click", () => {
+        console.clear();
+
+        console.log("=== ASYNCHRONOUS ===");
+
+        console.log("Pertama");
+
+        setTimeout(() => {
+          console.log("Kedua");
+        }, 2000);
+
+        console.log("Ketiga");
+      });
+
+      // ========================================
+      // 3. CALLBACK
+      // ========================================
+
+      const callbackBtn = document.querySelector("#callbackBtn");
+
+      function prosesDenganCallback(callback) {
+        console.log("Proses dimulai...");
+
+        setTimeout(() => {
+          callback();
+        }, 2000);
+      }
+
+      callbackBtn.addEventListener("click", () => {
+        console.clear();
+
+        console.log("=== CALLBACK ===");
+
+        prosesDenganCallback(() => {
+          console.log("Proses selesai!");
+        });
+      });
+
+      // ========================================
+      // 4. PROMISE
+      // ========================================
+
+      const promiseBtn = document.querySelector("#promiseBtn");
+
+      function ambilData() {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve("Data berhasil didapatkan!");
+          }, 2000);
+        });
+      }
+
+      promiseBtn.addEventListener("click", () => {
+        console.clear();
+
+        console.log("=== PROMISE ===");
+
+        ambilData()
+          .then((hasil) => {
+            console.log(hasil);
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      });
+
+      // ========================================
+      // 5. ASYNC / AWAIT
+      // ========================================
+
+      const asyncAwaitBtn = document.querySelector("#asyncAwaitBtn");
+
+      async function jalankanAsyncAwait() {
+        console.log("=== ASYNC / AWAIT ===");
+
+        console.log("Mengambil data...");
+
+        const hasil = await ambilData();
+
+        console.log(hasil);
+      }
+
+      asyncAwaitBtn.addEventListener("click", () => {
+        console.clear();
+
+        jalankanAsyncAwait();
+      });
+    </script>
+  </body>
+</html>
