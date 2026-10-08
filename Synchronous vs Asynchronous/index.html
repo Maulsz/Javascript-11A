@@ -3,158 +3,679 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>Sync & Async JavaScript</title>
+    <title>Sync & Async JavaScript - Buka Console (F12)</title>
   </head>
-
   <body>
-    <h1>Synchronous & Asynchronous JavaScript</h1>
-
-    <p>
-      Buka <b>Console</b> browser dengan menekan <b>F12</b>
-      untuk melihat hasil praktik.
-    </p>
-
-    <hr />
-
-    <h2>1. Synchronous</h2>
-
-    <button id="syncBtn">Jalankan Synchronous</button>
-
-    <hr />
-
-    <h2>2. Asynchronous</h2>
-
-    <button id="asyncBtn">Jalankan Asynchronous</button>
-
-    <hr />
-
-    <h2>3. Callback</h2>
-
-    <button id="callbackBtn">Jalankan Callback</button>
-
-    <hr />
-
-    <h2>4. Promise</h2>
-
-    <button id="promiseBtn">Jalankan Promise</button>
-
-    <hr />
-
-    <h2>5. Async / Await</h2>
-
-    <button id="asyncAwaitBtn">Jalankan Async / Await</button>
+    <!--
+    Halaman ini sengaja kosong.
+    Buka Console dengan menekan F12 lalu pilih tab "Console".
+  -->
 
     <script>
-      // ========================================
-      // 1. SYNCHRONOUS
-      // ========================================
+      // =====================================================================
+      // PENGATURAN
+      // Kosongkan [] untuk menjalankan SEMUA demo secara berurutan.
+      // Contoh isi: ["promiseAll", "eventLoop"]
+      // Atau ketik di Console, misalnya: demo.fetchGet()
+      // =====================================================================
+      const DEMO_YANG_DIJALANKAN = [];
 
-      const syncBtn = document.querySelector("#syncBtn");
+      // ---------------------------------------------------------------------
+      // HELPER
+      // ---------------------------------------------------------------------
+      const log = console.log;
+      const API = "https://jsonplaceholder.typicode.com";
 
-      syncBtn.addEventListener("click", () => {
-        console.clear();
+      // Mengubah setTimeout menjadi Promise agar bisa di-await
+      const tunda = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-        console.log("=== SYNCHRONOUS ===");
-
-        console.log("Pertama");
-        console.log("Kedua");
-        console.log("Ketiga");
-      });
-
-      // ========================================
-      // 2. ASYNCHRONOUS
-      // ========================================
-
-      const asyncBtn = document.querySelector("#asyncBtn");
-
-      asyncBtn.addEventListener("click", () => {
-        console.clear();
-
-        console.log("=== ASYNCHRONOUS ===");
-
-        console.log("Pertama");
-
-        setTimeout(() => {
-          console.log("Kedua");
-        }, 2000);
-
-        console.log("Ketiga");
-      });
-
-      // ========================================
-      // 3. CALLBACK
-      // ========================================
-
-      const callbackBtn = document.querySelector("#callbackBtn");
-
-      function prosesDenganCallback(callback) {
-        console.log("Proses dimulai...");
-
-        setTimeout(() => {
-          callback();
-        }, 2000);
-      }
-
-      callbackBtn.addEventListener("click", () => {
-        console.clear();
-
-        console.log("=== CALLBACK ===");
-
-        prosesDenganCallback(() => {
-          console.log("Proses selesai!");
-        });
-      });
-
-      // ========================================
-      // 4. PROMISE
-      // ========================================
-
-      const promiseBtn = document.querySelector("#promiseBtn");
-
-      function ambilData() {
-        return new Promise((resolve, reject) => {
+      // Tugas tiruan: selesai setelah `ms` milidetik, bisa dibuat gagal
+      const tugas = (nama, ms, gagal = false) =>
+        new Promise((resolve, reject) => {
           setTimeout(() => {
-            resolve("Data berhasil didapatkan!");
-          }, 2000);
+            gagal
+              ? reject(new Error(`${nama} gagal`))
+              : resolve(`${nama} selesai`);
+          }, ms);
         });
-      }
 
-      promiseBtn.addEventListener("click", () => {
-        console.clear();
+      // Semua demo disimpan di object ini
+      const demo = {};
 
-        console.log("=== PROMISE ===");
+      // =====================================================================
+      // 1-4. SYNC VS ASYNC DASAR
+      // =====================================================================
+      demo.syncVsAsync = () =>
+        new Promise((selesai) => {
+          log("--- Synchronous ---");
+          log("Pertama");
+          log("Kedua");
+          log("Ketiga");
 
-        ambilData()
-          .then((hasil) => {
-            console.log(hasil);
-          })
-          .catch((error) => {
-            console.log(error);
+          log("--- Asynchronous (perhatikan urutannya) ---");
+          log("A");
+          setTimeout(() => {
+            log("B (muncul terakhir, setelah 1 detik)");
+            selesai();
+          }, 1000);
+          log("C");
+        });
+
+      // =====================================================================
+      // 6. CALLBACK & CALLBACK HELL
+      // =====================================================================
+      demo.callback = () =>
+        new Promise((selesai) => {
+          // Callback sederhana
+          function sapa(nama, callback) {
+            log(`Halo, ${nama}!`);
+            callback();
+          }
+          sapa("Budi", () => log("Callback dipanggil setelah menyapa"));
+
+          // Callback synchronous bawaan JavaScript
+          [1, 2, 3].forEach((n) => log("forEach callback:", n));
+
+          // Callback asynchronous dengan pola error-first
+          function bagi(a, b, cb) {
+            setTimeout(() => {
+              if (b === 0) return cb(new Error("Tidak bisa dibagi 0"));
+              cb(null, a / b);
+            }, 300);
+          }
+
+          bagi(10, 2, (err, hasil) => {
+            if (err) return log("Error:", err.message);
+            log("10 / 2 =", hasil);
+
+            bagi(10, 0, (err2) => {
+              if (err2) log("Error:", err2.message);
+              selesai();
+            });
           });
-      });
+        });
 
-      // ========================================
-      // 5. ASYNC / AWAIT
-      // ========================================
+      demo.callbackHell = () =>
+        new Promise((selesai) => {
+          const ambilUser = (id, cb) =>
+            setTimeout(() => cb({ id, nama: "Budi" }), 300);
+          const ambilPostingan = (userId, cb) =>
+            setTimeout(
+              () => cb([{ id: 101, judul: "Postingan pertama" }]),
+              300,
+            );
+          const ambilKomentar = (postId, cb) =>
+            setTimeout(() => cb(["Bagus!", "Mantap!"]), 300);
 
-      const asyncAwaitBtn = document.querySelector("#asyncAwaitBtn");
+          log("Mengambil user...");
+          ambilUser(1, (user) => {
+            log("User:", user.nama);
+            ambilPostingan(user.id, (posts) => {
+              log("Postingan:", posts[0].judul);
+              ambilKomentar(posts[0].id, (komentar) => {
+                log("Komentar:", komentar);
+                log("Lihat betapa menjorok ke dalam? Itulah Callback Hell.");
+                selesai();
+              });
+            });
+          });
+        });
 
-      async function jalankanAsyncAwait() {
-        console.log("=== ASYNC / AWAIT ===");
+      // =====================================================================
+      // 7. PROMISE: KONSEP DAN CARA MEMBUATNYA
+      // =====================================================================
+      demo.promiseDasar = async () => {
+        function cekUmur(umur) {
+          return new Promise((resolve, reject) => {
+            setTimeout(() => {
+              if (umur >= 18) resolve("Boleh masuk");
+              else reject(new Error("Umur belum cukup"));
+            }, 500);
+          });
+        }
 
-        console.log("Mengambil data...");
+        // Melihat status pending
+        const janji = cekUmur(20);
+        log("Status awal:", janji); // Promise {<pending>}
 
-        const hasil = await ambilData();
+        const hasil = await janji;
+        log("Setelah selesai:", janji); // Promise {<fulfilled>: ...}
+        log("Hasil:", hasil);
 
-        console.log(hasil);
+        // Promise yang gagal
+        try {
+          await cekUmur(15);
+        } catch (err) {
+          log("Gagal:", err.message);
+        }
+
+        // Promise yang langsung selesai
+        log("Promise.resolve:", await Promise.resolve("langsung berhasil"));
+        await Promise.reject(new Error("langsung gagal")).catch((e) =>
+          log("Promise.reject:", e.message),
+        );
+      };
+
+      // =====================================================================
+      // 8. PROMISE: THEN, CATCH, FINALLY
+      // =====================================================================
+      demo.promiseThenCatchFinally = async () => {
+        const ambilData = (berhasil) =>
+          new Promise((resolve, reject) => {
+            setTimeout(() => {
+              berhasil
+                ? resolve("Data berhasil diambil")
+                : reject(new Error("Server error"));
+            }, 300);
+          });
+
+        log("--- Skenario berhasil ---");
+        await ambilData(true)
+          .then((hasil) => log("then:", hasil))
+          .catch((err) => log("catch:", err.message))
+          .finally(() => log("finally: selalu jalan"));
+
+        log("--- Skenario gagal ---");
+        await ambilData(false)
+          .then((hasil) => log("then:", hasil))
+          .catch((err) => log("catch:", err.message))
+          .finally(() => log("finally: selalu jalan"));
+
+        log("--- Promise chaining ---");
+        await Promise.resolve(2)
+          .then((n) => {
+            log("n =", n);
+            return n * 2;
+          })
+          .then((n) => {
+            log("n * 2 =", n);
+            return n + 1;
+          })
+          .then((n) => log("n + 1 =", n));
+      };
+
+      demo.keluarDariCallbackHell = () => {
+        const ambilUser = (id) => tunda(300).then(() => ({ id, nama: "Budi" }));
+        const ambilPostingan = (userId) =>
+          tunda(300).then(() => [{ id: 101, judul: "Postingan pertama" }]);
+        const ambilKomentar = (postId) =>
+          tunda(300).then(() => ["Bagus!", "Mantap!"]);
+
+        // Perhatikan: tidak menjorok ke dalam lagi
+        return ambilUser(1)
+          .then((user) => {
+            log("User:", user.nama);
+            return ambilPostingan(user.id);
+          })
+          .then((posts) => {
+            log("Postingan:", posts[0].judul);
+            return ambilKomentar(posts[0].id);
+          })
+          .then((komentar) => log("Komentar:", komentar))
+          .catch((err) => log("Error:", err.message));
+      };
+
+      // =====================================================================
+      // 9. PROMISE.ALL, RACE, ALLSETTLED, ANY
+      // =====================================================================
+      demo.promiseAll = async () => {
+        log("--- Semua berhasil ---");
+        let mulai = performance.now();
+        const hasil = await Promise.all([
+          tugas("A", 1000),
+          tugas("B", 2000),
+          tugas("C", 500),
+        ]);
+        log("Hasil:", hasil);
+        log(
+          `Waktu: ${Math.round(performance.now() - mulai)} ms (≈ 2000, bukan 3500)`,
+        );
+
+        log("--- Salah satu gagal ---");
+        try {
+          await Promise.all([tugas("A", 500), tugas("B", 300, true)]);
+        } catch (err) {
+          log("Seluruhnya gagal:", err.message);
+        }
+      };
+
+      demo.promiseRace = async () => {
+        const hasil = await Promise.race([
+          tugas("Lambat", 2000),
+          tugas("Cepat", 500),
+        ]);
+        log("Pemenang race:", hasil);
+
+        // Contoh timeout dengan race
+        try {
+          await Promise.race([
+            tugas("Proses lama", 3000),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("Timeout 1 detik!")), 1000),
+            ),
+          ]);
+        } catch (err) {
+          log("Race sebagai timeout:", err.message);
+        }
+      };
+
+      demo.promiseAllSettled = async () => {
+        const hasil = await Promise.allSettled([
+          tugas("A", 500),
+          tugas("B", 300, true),
+          tugas("C", 100),
+        ]);
+        log("Hasil mentah:", hasil);
+
+        hasil.forEach((h, i) => {
+          if (h.status === "fulfilled") log(`Tugas ${i + 1} OK:`, h.value);
+          else log(`Tugas ${i + 1} GAGAL:`, h.reason.message);
+        });
+      };
+
+      demo.promiseAny = async () => {
+        const hasil = await Promise.any([
+          tugas("Server 1", 500, true),
+          tugas("Server 2", 1000),
+          tugas("Server 3", 200, true),
+        ]);
+        log("Berhasil pertama:", hasil);
+
+        log("--- Jika semua gagal ---");
+        try {
+          await Promise.any([tugas("A", 100, true), tugas("B", 200, true)]);
+        } catch (err) {
+          log("Nama error:", err.name); // AggregateError
+          log(
+            "Daftar error:",
+            err.errors.map((e) => e.message),
+          );
+        }
+      };
+
+      // =====================================================================
+      // 10. PROMISE.WITHRESOLVERS (ES2024)
+      // =====================================================================
+      demo.promiseWithResolvers = async () => {
+        if (typeof Promise.withResolvers !== "function") {
+          log(
+            "Browser kamu belum mendukung Promise.withResolvers. Update browser kamu (Chrome 119+, Firefox 121+, Safari 17.4+).",
+          );
+          return;
+        }
+
+        // resolve dipanggil dari LUAR constructor
+        const { promise, resolve } = Promise.withResolvers();
+
+        promise.then((pesan) => log("Diterima:", pesan));
+
+        log("Menunggu resolve dari luar...");
+        setTimeout(() => resolve("Halo dari luar!"), 1000);
+        await promise;
+
+        // Contoh reject
+        const kedua = Promise.withResolvers();
+        setTimeout(() => kedua.reject(new Error("Dibatalkan dari luar")), 300);
+        try {
+          await kedua.promise;
+        } catch (err) {
+          log("Reject:", err.message);
+        }
+
+        // Cara lama (sebagai perbandingan)
+        let resolveLama;
+        const promiseLama = new Promise((res) => (resolveLama = res));
+        resolveLama("cara lama juga bisa, tetapi lebih panjang");
+        log(await promiseLama);
+      };
+
+      // =====================================================================
+      // 11. ASYNC DAN AWAIT
+      // =====================================================================
+      demo.asyncAwait = async () => {
+        function ambilData() {
+          return new Promise((resolve) => {
+            setTimeout(() => resolve("Data berhasil diambil"), 1000);
+          });
+        }
+
+        async function jalankan() {
+          log("Mulai");
+          const hasil = await ambilData();
+          log(hasil);
+          log("Selesai");
+        }
+
+        const proses = jalankan();
+        log(
+          "Kode di luar tetap jalan (muncul sebelum 'Data berhasil diambil')",
+        );
+        await proses;
+
+        // async function selalu mengembalikan Promise
+        async function kembalikanAngka() {
+          return 42;
+        }
+        log("async function mengembalikan:", kembalikanAngka());
+        log("Setelah await:", await kembalikanAngka());
+
+        // Berurutan vs paralel
+        let mulai = performance.now();
+        await tugas("A", 500);
+        await tugas("B", 500);
+        log(`Berurutan: ${Math.round(performance.now() - mulai)} ms (≈ 1000)`);
+
+        mulai = performance.now();
+        await Promise.all([tugas("A", 500), tugas("B", 500)]);
+        log(`Paralel: ${Math.round(performance.now() - mulai)} ms (≈ 500)`);
+      };
+
+      // =====================================================================
+      // 12. ERROR HANDLING DI ASYNC FUNCTION
+      // =====================================================================
+      demo.errorHandlingAsync = async () => {
+        const cekUmur = (umur) =>
+          new Promise((resolve, reject) => {
+            setTimeout(() => {
+              umur >= 18
+                ? resolve("Boleh masuk")
+                : reject(new Error("Umur belum cukup"));
+            }, 300);
+          });
+
+        log("--- try / catch / finally ---");
+        try {
+          const hasil = await cekUmur(15);
+          log(hasil);
+        } catch (err) {
+          log("Error ditangkap:", err.message);
+        } finally {
+          log("finally: selalu dijalankan");
+        }
+
+        log("--- Async function yang melempar error ---");
+        async function gagal() {
+          throw new Error("Ups!");
+        }
+        await gagal().catch((err) => log("Ditangkap dari luar:", err.message));
+
+        log("--- allSettled: tidak peduli ada yang gagal ---");
+        const hasil = await Promise.allSettled([
+          tugas("A", 100),
+          tugas("B", 100, true),
+        ]);
+        hasil.forEach((h) => {
+          if (h.status === "fulfilled") log("OK:", h.value);
+          else log("Gagal:", h.reason.message);
+        });
+
+        log("--- Kesalahan umum: lupa await ---");
+        const lupa = cekUmur(20); // tanpa await
+        log("Tanpa await, hasilnya Promise:", lupa);
+        log("Dengan await, hasilnya nilai:", await lupa);
+
+        log("--- await di loop: for...of (berurutan) ---");
+        for (const nama of ["X", "Y", "Z"]) {
+          log(await tugas(nama, 100));
+        }
+      };
+
+      // =====================================================================
+      // 13. EVENT LOOP
+      // =====================================================================
+      demo.eventLoop = () =>
+        new Promise((selesai) => {
+          log("Tebak urutannya sebelum melihat hasil!");
+
+          log("1. Sync awal");
+
+          setTimeout(() => {
+            log("2. setTimeout 0 ms (macrotask)");
+            selesai();
+          }, 0);
+
+          Promise.resolve().then(() => log("3. Promise.then (microtask)"));
+
+          queueMicrotask(() => log("4. queueMicrotask (microtask)"));
+
+          (async () => {
+            log("5. Di dalam async function, sebelum await (masih sync)");
+            await null;
+            log("6. Setelah await (microtask)");
+          })();
+
+          log("7. Sync akhir");
+
+          // Urutan yang benar: 1, 5, 7, 3, 4, 6, 2
+        });
+
+      // =====================================================================
+      // 14. TIMER: SETTIMEOUT DAN SETINTERVAL
+      // =====================================================================
+      demo.timer = () =>
+        new Promise((selesai) => {
+          // setTimeout biasa
+          setTimeout(() => log("setTimeout: muncul setelah 500 ms"), 500);
+
+          // setTimeout dengan argumen
+          setTimeout(
+            (nama) => log(`setTimeout dengan argumen: Halo, ${nama}`),
+            700,
+            "Budi",
+          );
+
+          // setTimeout dibatalkan
+          const id = setTimeout(() => log("INI TIDAK AKAN MUNCUL"), 800);
+          clearTimeout(id);
+          log("setTimeout dibatalkan dengan clearTimeout");
+
+          // setInterval berhenti setelah 3 kali
+          let hitung = 0;
+          const intervalId = setInterval(() => {
+            hitung++;
+            log("setInterval hitungan:", hitung);
+
+            if (hitung === 3) {
+              clearInterval(intervalId);
+              log("setInterval dihentikan dengan clearInterval");
+              selesai();
+            }
+          }, 1000);
+        });
+
+      // =====================================================================
+      // 15. FETCH: GET
+      // =====================================================================
+      demo.fetchGet = async () => {
+        log("--- Cara .then() ---");
+        await fetch(`${API}/posts/1`)
+          .then((response) => response.json())
+          .then((data) => log("Data:", data));
+
+        log("--- Cara async/await ---");
+        const response = await fetch(`${API}/posts/2`);
+        log("Status:", response.status, "| ok:", response.ok);
+        const data = await response.json();
+        log("Judul:", data.title);
+
+        log("--- Banyak data + query string ---");
+        const params = new URLSearchParams({ userId: 1, _limit: 3 });
+        const res = await fetch(`${API}/posts?${params}`);
+        const daftar = await res.json();
+        log(`Jumlah data: ${daftar.length}`);
+        daftar.forEach((post) => log(`  #${post.id}: ${post.title}`));
+      };
+
+      // =====================================================================
+      // 16. FETCH: POST, PUT, PATCH, DELETE
+      // =====================================================================
+      demo.fetchPost = async () => {
+        const response = await fetch(`${API}/posts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: "Belajar Fetch",
+            body: "Fetch itu mudah",
+            userId: 1,
+          }),
+        });
+
+        log("POST status:", response.status, "(201 = Created)");
+        log("Respons:", await response.json());
+      };
+
+      demo.fetchPut = async () => {
+        const response = await fetch(`${API}/posts/1`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: 1,
+            title: "Judul baru (PUT)",
+            body: "Isi baru",
+            userId: 1,
+          }),
+        });
+
+        log("PUT status:", response.status);
+        log("Respons:", await response.json());
+      };
+
+      demo.fetchPatch = async () => {
+        const response = await fetch(`${API}/posts/1`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: "Hanya judul yang berubah (PATCH)" }),
+        });
+
+        log("PATCH status:", response.status);
+        log("Respons (field lain tetap ada):", await response.json());
+      };
+
+      demo.fetchDelete = async () => {
+        const response = await fetch(`${API}/posts/1`, { method: "DELETE" });
+
+        log("DELETE status:", response.status);
+        log("ok:", response.ok);
+        log("Respons:", await response.json(), "(kosong, itu normal)");
+      };
+
+      // =====================================================================
+      // 17. ERROR HANDLING FETCH DAN NETWORK
+      // =====================================================================
+      demo.fetchError = async () => {
+        // --- 1. Jebakan: 404 TIDAK masuk catch ---
+        log("--- 1. Error HTTP (404) ---");
+        try {
+          const response = await fetch(`${API}/posts/99999`);
+          log(
+            "Fetch tidak reject! status:",
+            response.status,
+            "| ok:",
+            response.ok,
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+        } catch (err) {
+          log("Ditangkap setelah cek response.ok:", err.message);
+        }
+
+        // --- 2. Error jaringan ---
+        log("--- 2. Error jaringan (domain tidak ada) ---");
+        try {
+          await fetch("https://domain-yang-tidak-ada.invalid/data");
+        } catch (err) {
+          log("Nama error:", err.name); // TypeError
+          log("Pesan:", err.message);
+        }
+
+        // --- 3. Timeout dengan AbortController ---
+        log("--- 3. Timeout dengan AbortController ---");
+        async function fetchDenganTimeout(url, ms) {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), ms);
+
+          try {
+            return await fetch(url, { signal: controller.signal });
+          } finally {
+            clearTimeout(timer);
+          }
+        }
+
+        try {
+          await fetchDenganTimeout(`${API}/posts`, 1); // 1 ms, pasti terlalu cepat
+        } catch (err) {
+          if (err.name === "AbortError") {
+            log("Request dibatalkan karena melewati batas waktu");
+          } else {
+            log("Error lain:", err.message);
+          }
+        }
+
+        // --- 4. Helper lengkap yang bisa dipakai ulang ---
+        log("--- 4. Helper fetchJson ---");
+        async function fetchJson(url, options = {}) {
+          try {
+            const response = await fetch(url, options);
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            return await response.json();
+          } catch (err) {
+            if (err instanceof TypeError) {
+              throw new Error("Masalah jaringan. Cek koneksi internet kamu.");
+            }
+            throw err;
+          }
+        }
+
+        try {
+          const data = await fetchJson(`${API}/posts/1`);
+          log("fetchJson berhasil:", data.title);
+          await fetchJson(`${API}/posts/99999`);
+        } catch (err) {
+          log("fetchJson gagal:", err.message);
+        }
+      };
+
+      // =====================================================================
+      // RUNNER: menjalankan demo secara berurutan
+      // =====================================================================
+      async function jalankanDemo() {
+        const daftar = DEMO_YANG_DIJALANKAN.length
+          ? DEMO_YANG_DIJALANKAN
+          : Object.keys(demo);
+
+        for (const nama of daftar) {
+          if (typeof demo[nama] !== "function") {
+            log(
+              `Demo "${nama}" tidak ditemukan. Daftar: ${Object.keys(demo).join(", ")}`,
+            );
+            continue;
+          }
+
+          console.log(
+            `%c\n=== ${nama} ===`,
+            "font-weight:bold; color:#2563eb; font-size:14px",
+          );
+
+          try {
+            await demo[nama]();
+          } catch (err) {
+            console.error(`Demo "${nama}" error:`, err.message);
+          }
+        }
+
+        console.log(
+          "%c\nSemua demo selesai. Coba jalankan sendiri, misalnya: demo.promiseAll()",
+          "font-weight:bold; color:#16a34a",
+        );
       }
 
-      asyncAwaitBtn.addEventListener("click", () => {
-        console.clear();
-
-        jalankanAsyncAwait();
-      });
+      jalankanDemo();
     </script>
   </body>
 </html>
